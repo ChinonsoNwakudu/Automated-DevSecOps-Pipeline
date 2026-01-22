@@ -69,8 +69,8 @@ app.use((err, req, res, _next) => {
 
 // Only start server if run directly (not when imported by tests)
 if (require.main === module) {
-const server = app.listen(PORT, () => {
-  console.log(`
+  const server = app.listen(PORT, () => {
+    console.log(`
 ╔════════════════════════════════════════════╗
 ║   🚀 DevOps Todo App Server Running       ║
 ║                                            ║
@@ -82,15 +82,15 @@ const server = app.listen(PORT, () => {
 ║   API: http://localhost:${PORT}/api/todos${' '.repeat(10)} ║
 ╚════════════════════════════════════════════╝
   `);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  server.close(() => {
-    console.log('HTTP server closed');
   });
-});
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    server.close(() => {
+      console.log('HTTP server closed');
+    });
+  });
 }
 // Export for testing
 module.exports = app;

@@ -85,7 +85,7 @@ describe('Helper Functions', () => {
     const validateTodo = (title) => {
   
       return !!(title && typeof title === 'string' && title.length > 0);
-     };
+    };
     expect(validateTodo('Valid title')).toBe(true);
     expect(validateTodo('')).toBe(false);
     expect(validateTodo(null)).toBe(false);
