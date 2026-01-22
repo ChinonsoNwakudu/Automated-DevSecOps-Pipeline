@@ -71,9 +71,11 @@ app.get('/health', (req, res) => {
 });
 
 // Start server
+// Only start server if run directly (not when imported by tests)
+if (require.main === module) {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
+}
 // Export for testing
 module.exports = app;
