@@ -1,80 +1,95 @@
 // backend/server.js
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Import routes
+const todoRoutes = require('./routes/todos');
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('frontend'));
+app.use(express.urlencoded({ extended: true }));
 
-// In-memory database (for learning purposes)
-let todos = [
-  { id: 1, title: 'Learn CI/CD', completed: false },
-  { id: 2, title: 'Build Pipeline', completed: false }
-];
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Routes
-// GET all todos
-app.get('/api/todos', (req, res) => {
-  res.json(todos);
+// Request logging middleware (useful for DevOps monitoring)
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.path}`);
+  next();
 });
 
-// GET single todo
-app.get('/api/todos/:id', (req, res) => {
-  const todo = todos.find(t => t.id === parseInt(req.params.id));
-  if (!todo) return res.status(404).json({ error: 'Todo not found' });
-  res.json(todo);
-});
-
-// POST create new todo
-app.post('/api/todos', (req, res) => {
-  const { title } = req.body;
-  if (!title) {
-    return res.status(400).json({ error: 'Title is required' });
-  }
-  
-  const newTodo = {
-    id: todos.length + 1,
-    title,
-    completed: false
+// Health check endpoint (critical for DevOps!)
+app.get('/health', (req, res) => {
+  const healthcheck = {
+    status: 'healthy',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    memory: process.memoryUsage(),
   };
   
-  todos.push(newTodo);
-  res.status(201).json(newTodo);
+  res.status(200).json(healthcheck);
 });
 
-// PUT update todo
-app.put('/api/todos/:id', (req, res) => {
-  const todo = todos.find(t => t.id === parseInt(req.params.id));
-  if (!todo) return res.status(404).json({ error: 'Todo not found' });
-  
-  if (req.body.title !== undefined) todo.title = req.body.title;
-  if (req.body.completed !== undefined) todo.completed = req.body.completed;
-  
-  res.json(todo);
+// API Routes
+app.use('/api/todos', todoRoutes);
+
+// API Status endpoint
+app.get('/api/status', (req, res) => {
+  res.json({
+    service: 'DevOps Todo API',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  });
 });
 
-// DELETE todo
-app.delete('/api/todos/:id', (req, res) => {
-  const index = todos.findIndex(t => t.id === parseInt(req.params.id));
-  if (index === -1) return res.status(404).json({ error: 'Todo not found' });
-  
-  todos.splice(index, 1);
-  res.status(204).send();
+// Serve frontend for any other routes (SPA support)
+
+// Note: Commented out due to Express 5 path-to-regexp restrictions
+// The express.static middleware above already handles serving frontend files
+// app.get('/*', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../frontend/index.html'));
+// });
+
+// Error handling middleware
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _next) => {
+  console.error('Error:', err.stack);
+  res.status(500).json({ 
+    error: 'Something went wrong!',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
-// Health check endpoint (important for DevOps!)
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', timestamp: new Date() });
-});
-
-// Start server
 // Only start server if run directly (not when imported by tests)
 if (require.main === module) {
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(PORT, () => {
+  console.log(`
+╔════════════════════════════════════════════╗
+║   🚀 DevOps Todo App Server Running       ║
+║                                            ║
+║   Environment: ${(process.env.NODE_ENV || 'development').padEnd(28)} ║
+║   Port: ${PORT.toString().padEnd(35)} ║
+║   URL: http://localhost:${PORT.toString().padEnd(23)} ║
+║                                            ║
+║   Health: http://localhost:${PORT}/health${' '.repeat(11)} ║
+║   API: http://localhost:${PORT}/api/todos${' '.repeat(10)} ║
+╚════════════════════════════════════════════╝
+  `);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
 });
 }
 // Export for testing

@@ -1,35 +1,64 @@
 {
   "name": "devsecops-pipeline",
   "version": "1.0.0",
-  "main": "index.js",
-  "description": "",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "description": "Enterprise DevSecOps Pipeline: Automated Testing, Security Scanning & Zero-Downtime Deployments",
+  "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
     "lint": "eslint backend/ tests/",
-    "lint:fix": "eslint backend/ tests/ --fix"
+    "lint:fix": "eslint backend/ tests/ --fix",
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "build": "echo 'Building application...' && mkdir -p dist && cp -r backend dist/ && cp -r frontend dist/ && cp package*.json dist/",
+    "docker:build": "docker build -t devops-todo-app:latest .",
+    "docker:run": "docker run -p 3000:3000 devops-todo-app:latest"
   },
+  "keywords": [
+    "devops",
+    "ci-cd",
+    "devsecops",
+    "docker",
+    "github-actions",
+    "todo-app"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.2.1"
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
-    "eslint": "^9.39.2",
-    "globals": "^17.0.0",
-    "jest": "^30.2.0",
-    "supertest": "^7.2.2"
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "eslint": "^8.54.0",
+    "nodemon": "^3.0.2",
+    "prettier": "^3.1.0"
   },
   "jest": {
     "testEnvironment": "node",
     "coverageDirectory": "coverage",
     "collectCoverageFrom": [
       "backend/**/*.js",
-      "!backend/node_modules/**"
+      "!backend/node_modules/**",
+      "!backend/coverage/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      }
+    },
+    "testMatch": [
+      "**/tests/**/*.test.js"
     ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
