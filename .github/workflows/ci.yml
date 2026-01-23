@@ -126,7 +126,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: your-dockerhub-chinonsonw/todo-app
+          images: chinonsonw/todo-app
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
