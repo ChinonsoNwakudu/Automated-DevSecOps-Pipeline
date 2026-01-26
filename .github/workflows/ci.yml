@@ -143,3 +143,32 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha  # Use GitHub Actions cache
           cache-to: type=gha,mode=max    
+
+       # Scan Docker image for vulnerabilities
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: your-dockerhub-username/todo-app:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+      
+      # Upload scan results to GitHub Security tab
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+      
+      # Create readable report
+      - name: Generate vulnerability report
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: your-dockerhub-username/todo-app:latest
+          format: 'table'
+          output: 'trivy-report.txt'
+      
+      - name: Upload vulnerability report
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy-vulnerability-report
+          path: trivy-report.txt    
