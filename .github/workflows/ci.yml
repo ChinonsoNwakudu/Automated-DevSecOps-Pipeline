@@ -1,6 +1,10 @@
 # .github/workflows/ci.yml
 name: CI Pipeline
 
+permissions:
+  contents: read          # needed for checkout / npm ci
+  security-events: write  # required to upload SARIF
+
 # When should this workflow run?
 on:
   push:
@@ -101,6 +105,7 @@ jobs:
           path: dist/
           retention-days: 7  # Keep artifacts for 7 days
 
+# Docker Image          
   docker:
     name: Build Docker Image
     runs-on: ubuntu-latest
@@ -155,9 +160,14 @@ jobs:
       
       # Upload scan results to GitHub Security tab
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
+        
+        # Only run when we have write permission (i.e. not a fork PR)
+        if: |
+          github.event_name != 'pull_request' ||
+          github.repository == github.event.pull_request.head.repo.full_name  
       
       # Create readable report
       - name: Generate vulnerability report
