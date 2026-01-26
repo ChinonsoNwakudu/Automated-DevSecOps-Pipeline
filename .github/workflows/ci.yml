@@ -148,7 +148,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: your-dockerhub-username/todo-app:latest
+          image-ref: chinonsonw/todo-app
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -163,7 +163,7 @@ jobs:
       - name: Generate vulnerability report
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: your-dockerhub-username/todo-app:latest
+          image-ref: chinonsonw/todo-app
           format: 'table'
           output: 'trivy-report.txt'
       
