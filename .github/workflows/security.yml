@@ -69,15 +69,7 @@ jobs:
           name: npm-audit-report
           path: npm-audit.json
       
-      # Alternative: Use Snyk for more detailed dependency scanning
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@master
-        continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
-
+     
   # Job 3: Secret Scanning
   secret-scan:
     name: Secret Scanning
