@@ -18,7 +18,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history for better analysis
       
@@ -41,8 +41,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.projectKey=your-project-key
-            -Dsonar.organization=your-org
+            -Dsonar.projectKey=ChinonsoNwakudu_Automated-DevSecOps-Pipeline
+            -Dsonar.organization=chinonsonwakudu
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.sources=backend
             -Dsonar.tests=tests
