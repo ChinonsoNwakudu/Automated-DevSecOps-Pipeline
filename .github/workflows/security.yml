@@ -86,16 +86,30 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}  # Optional
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}  
+
+      # Security Analysis - CodeQL
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v3
       
-      # TruffleHog: Alternative secret scanner
-      - name: TruffleHog Scan
-        uses: trufflesecurity/trufflehog@main
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
         with:
-          path: ./
-          base: main
-          head: HEAD
-          extra_args: --debug --only-verified
+          languages: javascript
+          queries: security-and-quality
+      
+      - name: Perform Analysis
+        uses: github/codeql-action/analyze@v2
+    
+        
 
   # Job 4: Code Quality Gates
   quality-gate:
