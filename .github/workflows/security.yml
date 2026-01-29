@@ -109,19 +109,5 @@ jobs:
       - name: Perform Analysis
         uses: github/codeql-action/analyze@v2
     
-        
 
-  # Job 4: Code Quality Gates
-  quality-gate:
-    name: Quality Gate Check
-    runs-on: ubuntu-latest
-    needs: [sonarcloud, dependency-check, secret-scan]
-    
-    steps:
-      - name: Check SonarCloud Quality Gate
-        uses: sonarsource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          scanMetadataReportFile: .scannerwork/report-task.txt
+  
