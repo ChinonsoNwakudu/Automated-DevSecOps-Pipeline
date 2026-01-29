@@ -83,7 +83,7 @@ jobs:
       
       # GitLeaks: Scan for secrets in code and git history
       - name: Gitleaks Scan
-        uses: gitleaks/gitleaks-action@v4
+        uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}  
