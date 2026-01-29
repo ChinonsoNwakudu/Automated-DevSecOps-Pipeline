@@ -18,12 +18,12 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Full history for better analysis
+          fetch-depth: 0  # Important for better analysis
       
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
@@ -32,22 +32,16 @@ jobs:
         run: npm ci
       
       - name: Run tests with coverage
-        run: npm test -- --coverage
+        run: npm test -- --coverage --coverageReporters=lcov
       
+      # Use the NEW action (old one is deprecated)
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=ChinonsoNwakudu_Automated-DevSecOps-Pipeline
-            -Dsonar.organization=chinonsonwakudu
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.sources=backend
-            -Dsonar.tests=tests
-            -Dsonar.exclusions=node_modules/**,coverage/**
-
+      
+     
   # Job 2: Dependency Vulnerability Scanning
   dependency-check:
     name: Dependency Vulnerability Scan
