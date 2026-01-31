@@ -114,26 +114,28 @@ jobs:
           cache-to: type=gha,mode=max
 
   # Job 4: Verify
+     # Replace just the verify job in deploy.yml
+
   verify:
     name: Verify Deployment
     runs-on: ubuntu-latest
     needs: [validate, build]
     
     steps:
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
+        - name: Login to Docker Hub
+          uses: docker/login-action@v2
+          with:
             username: ${{ secrets.DOCKER_USERNAME }}
             password: ${{ secrets.DOCKER_PASSWORD }}
         
-      - name: Pull image
-        run: |
+        - name: Pull image
+          run: |
             IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.validate.outputs.environment }}"
             echo "Pulling: ${IMAGE}"
             docker pull "${IMAGE}"
         
-      - name: Run container
-        run: |
+        - name: Run container
+          run: |
             IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.validate.outputs.environment }}"
             ENV="${{ needs.validate.outputs.environment }}"
             
@@ -146,9 +148,9 @@ jobs:
             
             echo "Container started!"
         
-       
-      - name: Check container status
-        run: |
+        # ✅ FIX: Check if container is actually running
+        - name: Check container status
+          run: |
             echo "Waiting for container to be ready..."
             sleep 3
             
@@ -169,8 +171,8 @@ jobs:
             
             echo "✅ Container is running!"
         
-      - name: Wait for app to start
-        run: |
+        - name: Wait for app to start
+          run: |
             echo "Waiting for app to start..."
             for i in {1..30}; do
             if curl -f http://localhost:3000/health 2>/dev/null; then
@@ -185,28 +187,26 @@ jobs:
             echo "Container logs:"
             docker logs verify-app
             exit 1
-      
-      - name: Health check
-        run: |
-          echo "Checking health endpoint..."
-          curl -f http://localhost:3000/health
-          echo ""
-          echo "✅ Health check passed!"
-      
-      - name: Smoke test
-        run: |
-          echo "Testing API..."
-          curl -f http://localhost:3000/api/todos
-          echo ""
-          echo "✅ Smoke tests passed!"
-      
-      #Added || true so cleanup doesn't fail the job
-      - name: Clean up
-        if: always()
-        run: |
-          docker stop verify-app || true
-          docker rm verify-app || true
-
+        
+        - name: Health check
+          run: |
+            echo "Running health check..."
+            curl -f http://localhost:3000/health
+            echo ""
+            echo "✅ Health check passed!"
+        
+        - name: Smoke test
+          run: |
+            echo "Testing API..."
+            curl -f http://localhost:3000/api/todos
+            echo ""
+            echo "✅ Smoke tests passed!"
+        
+        - name: Clean up
+          if: always()
+          run: |
+            docker stop verify-app || true
+            docker rm verify-app || true
   # Job 5: Summary
   summary:
     name: Deployment Summary
