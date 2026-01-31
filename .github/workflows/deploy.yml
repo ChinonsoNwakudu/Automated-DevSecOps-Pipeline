@@ -1,0 +1,195 @@
+# .github/workflows/deploy.yml
+
+name: Deploy to Environments
+
+on:
+  # Manual trigger - you can choose the environment
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Version to deploy (leave empty for latest)'
+        required: false
+        type: string
+
+env:
+  IMAGE_NAME: devops-todo-app
+
+jobs:
+  # Job 1: Validate deployment request
+  validate:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.validate.outputs.environment }}
+      version: ${{ steps.validate.outputs.version }}
+      image_tag: ${{ steps.validate.outputs.image_tag }}
+    
+    steps:
+      - name: Validate inputs
+        id: validate
+        run: |
+          ENV=${{ inputs.environment }}
+          VERSION=${{ inputs.version }}
+
+          # If no version provided, use the commit SHA
+          if [ -z "$VERSION" ]; then
+            VERSION=$(echo ${{ github.sha }} | cut -c1-7)
+          fi
+
+          # Build full image tag
+          IMAGE_TAG="${ENV}-${VERSION}"
+
+          echo "environment=${ENV}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+          # Log what's happening
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  Environment : ${ENV}"
+          echo "  Version     : ${VERSION}"
+          echo "  Image Tag   : ${IMAGE_TAG}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  # Job 2: Run tests before deploying (safety check)
+  test:
+    name: Run Tests Before Deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install and test
+        run: |
+          npm ci
+          npm test
+
+  # Job 3: Build and push Docker image
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [validate, test]  # Only build if validation and tests pass
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          # Tag image with environment and version
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.validate.outputs.image_tag }}
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.validate.outputs.environment }}
+          # Cache layers for faster builds
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Add labels/metadata to the image
+          labels: |
+            org.opencontainers.image.environment=${{ needs.validate.outputs.environment }}
+            org.opencontainers.image.version=${{ needs.validate.outputs.version }}
+            org.opencontainers.image.created=${{ github.event.repository.updated_at }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+  # Job 4: Verify the image works
+  verify:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      # Pull and run the image we just pushed
+      - name: Pull and run image
+        run: |
+          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.validate.outputs.environment }}
+          docker run -d \
+            --name verify-app \
+            -p 3000:3000 \
+            -e NODE_ENV=${{ needs.validate.outputs.environment }} \
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.validate.outputs.environment }}
+      
+      # Wait for container to start
+      - name: Wait for app to start
+        run: sleep 5
+      
+      # Health check - proves the app works
+      - name: Run health check
+        run: |
+          echo "Checking health endpoint..."
+          curl -f http://localhost:3000/health
+          echo ""
+          echo "✅ Health check passed!"
+      
+      # Smoke test - proves the API works
+      - name: Run smoke tests
+        run: |
+          echo "Testing API..."
+          curl -f http://localhost:3000/api/todos
+          echo ""
+          echo "✅ Smoke tests passed!"
+      
+      # Clean up the test container
+      - name: Clean up
+        run: |
+          docker stop verify-app
+          docker rm verify-app
+        if: always()  # Clean up even if tests fail
+
+  # Job 5: Create deployment summary
+  summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: verify
+    
+    steps:
+      - name: Create summary
+        run: |
+          echo "## 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Details:" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ needs.validate.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ needs.validate.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image Tag | ${{ needs.validate.outputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Health Check | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Smoke Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pull and Run:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.validate.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "docker run -e NODE_ENV=${{ needs.validate.outputs.environment }} \\" >> $GITHUB_STEP_SUMMARY
+          echo "  -p 3000:3000 \\" >> $GITHUB_STEP_SUMMARY
+          echo "  ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.validate.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

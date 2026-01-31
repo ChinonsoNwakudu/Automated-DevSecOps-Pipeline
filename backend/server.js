@@ -3,7 +3,17 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const app = express();
-const PORT = process.env.PORT || 3000;
+
+const config = require('../config/environment');
+
+const PORT = config.port;
+
+console.log(`
+╔════════════════════════════════════════════╗
+║   Environment: ${config.nodeEnv.toUpperCase().padEnd(28)} ║
+║   Port: ${PORT.toString().padEnd(35)} ║
+╚════════════════════════════════════════════╝
+`);
 
 // Import routes
 const todoRoutes = require('./routes/todos');
@@ -48,6 +58,10 @@ app.get('/api/status', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+
+
+
 
 // Serve frontend for any other routes (SPA support)
 
