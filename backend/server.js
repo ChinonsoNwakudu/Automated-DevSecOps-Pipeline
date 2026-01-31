@@ -6,11 +6,12 @@ const app = express();
 
 const config = require('../config/environment');
 
-const PORT = config.port;
+const PORT = config?.port ?? process.env.PORT ?? 3000;
 
+const NODE_ENV = config?.nodeEnv ?? process.env.NODE_ENV ?? 'development';
 console.log(`
 ╔════════════════════════════════════════════╗
-║   Environment: ${config.nodeEnv.toUpperCase().padEnd(28)} ║
+║   Environment: ${NODE_ENV.toUpperCase().padEnd(28)} ║
 ║   Port: ${PORT.toString().padEnd(35)} ║
 ╚════════════════════════════════════════════╝
 `);
