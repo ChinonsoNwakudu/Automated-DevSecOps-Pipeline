@@ -19,7 +19,7 @@ on:
         type: string
 
 env:
-  IMAGE_NAME: devops-todo-app
+  IMAGE_NAME: chinonsonw/todo-app
 
 jobs:
   # Job 1: Validate deployment request
