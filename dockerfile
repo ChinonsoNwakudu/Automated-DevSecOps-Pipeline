@@ -29,6 +29,7 @@ ENV NODE_ENV=production
 # Copy application code
 COPY backend ./backend
 COPY frontend ./frontend
+COPY config ./config   
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
