@@ -1,0 +1,141 @@
+# .github/workflows/optimized-ci.yml
+name: Optimized CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+# Define reusable environment variables
+env:
+  NODE_VERSION: '18'
+  CACHE_VERSION: v1
+
+jobs:
+  # Run jobs in parallel when possible
+  quality-checks:
+    name: Quality Checks (Parallel)
+    runs-on: ubuntu-latest
+    strategy:
+      # Don't cancel other jobs if one fails
+      fail-fast: false
+      matrix:
+        check: [lint, test, security]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          # Shallow clone for faster checkout
+          fetch-depth: 1
+      
+      - name: Setup Node.js with cache
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      # Use cache for node_modules
+      - name: Cache node modules
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.CACHE_VERSION }}-
+      
+      - name: Install dependencies
+        # Only install if cache miss
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: npm ci
+      
+      # Run different checks based on matrix
+      - name: Run ${{ matrix.check }}
+        run: |
+          case "${{ matrix.check }}" in
+            lint)
+              npm run lint
+              ;;
+            test)
+              npm test -- --maxWorkers=2
+              ;;
+            security)
+              npm audit --audit-level=moderate
+              ;;
+          esac
+
+  # Optimized Docker build with layer caching
+  build-docker:
+    name: Build Docker (Cached)
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      # Cache Docker layers
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      
+      - name: Build with cache
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: false
+          tags: todo-app:latest
+          # Use multiple cache sources
+          cache-from: |
+            type=local,src=/tmp/.buildx-cache
+            type=registry,ref=user/app:buildcache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+      
+      # Prevent cache from growing indefinitely
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  # Smart test execution - only run affected tests
+  smart-tests:
+    name: Smart Test Execution
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Need full history for diff
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      # Only run tests for changed files
+      - name: Run affected tests
+        run: |
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          
+          # Run tests only for changed modules
+          if echo "$CHANGED_FILES" | grep -q "backend/"; then
+            npm test -- --testPathPattern=backend
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -q "frontend/"; then
+            npm test -- --testPathPattern=frontend
+          fi
