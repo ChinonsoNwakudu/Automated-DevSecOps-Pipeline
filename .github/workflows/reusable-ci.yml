@@ -40,7 +40,6 @@ on:
       image-tag:
         description: 'Built Docker image tag'
         value: ${{ jobs.build.outputs.tag }}
-
 jobs:
   # Lint and code quality
   lint:
