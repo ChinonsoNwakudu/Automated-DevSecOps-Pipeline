@@ -542,7 +542,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📞 Contact
+## Contact
 
 **Your Name** - [GitHub](https://github.com/ChinonsoNwakudu) | [LinkedIn](https://www.linkedin.com/in/chinonso-nwakudu/)
 
