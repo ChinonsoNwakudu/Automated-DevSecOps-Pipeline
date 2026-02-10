@@ -213,7 +213,7 @@ Jobs:
 1. **Clone the repository**
    ```bash
    git clone https://github.com/ChinonsoNwakudu/Automated-DevSecOps-Pipeline
-   cd devops-pipeline-project
+   cd Automated-DevSecOps-Pipeline
    ```
 
 2. **Install dependencies**
@@ -307,7 +307,7 @@ While the project simulates blue-green deployment through Docker tags and enviro
 
 ---
 
-## 🔐 Security Scanning
+##  Security Scanning
 
 ### Security Pipeline Overview
 
@@ -503,7 +503,7 @@ devops-pipeline-project/
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 This is a learning project, but feedback and suggestions are welcome!
 
@@ -527,13 +527,13 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 
 ---
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - GitHub Actions documentation and community
 - Docker best practices guides
@@ -554,6 +554,6 @@ Project Link: [https://github.com/ChinonsoNwakudu/Automated-DevSecOps-Pipeline](
 
 **⭐ Star this repo if you found it helpful!**
 
-Made with ❤️ and lots of ☕
+Made with ❤️ 
 
 </div>
